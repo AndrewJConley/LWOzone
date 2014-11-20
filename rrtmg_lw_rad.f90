@@ -89,7 +89,7 @@
              cfc22vmr,ccl4vmr ,emis    ,inflglw ,iceflglw,liqflglw, &
              cldfmcl ,taucmcl ,ciwpmcl ,clwpmcl ,reicmcl ,relqmcl , &
              tauaer  , &
-             uflx    ,dflx    ,hr      ,uflxc   ,dflxc,  hrc, uflxs, dflxs )
+             uflx    ,dflx    ,hr      ,uflxc   ,dflxc,  hrc, uflxs, dflxs, uoz )
 
 ! -------- Description --------
 
@@ -269,6 +269,8 @@
                                                         !    Dimensions: (ncol,nlay)
       real(kind=r8), intent(out) :: uflxs(:,:,:)        ! Total sky longwave upward flux spectral (W/m2)
                                                         !    Dimensions: (nbndlw,ncol,nlay+1)
+      real(kind=r8), intent(out) :: uoz(:,:,:)        ! Total sky longwave upward flux spectral (W/m2)
+                                                        !    Dimensions: (nbndlw,ncol,nlay+1)
       real(kind=r8), intent(out) :: dflxs(:,:,:)        ! Total sky longwave downward flux spectral (W/m2)
                                                         !    Dimensions: (nbndlw,ncol,nlay+1)
 
@@ -375,6 +377,7 @@
       real(kind=r8) :: totuflux(0:nlay)         ! upward longwave flux (w/m2)
       real(kind=r8) :: totdflux(0:nlay)         ! downward longwave flux (w/m2)
       real(kind=r8) :: totufluxs(nbndlw,0:nlay) ! upward longwave flux spectral (w/m2)
+      real(kind=r8) :: ozfl(nbndlw,0:nlay) ! upward longwave flux spectral (w/m2)
       real(kind=r8) :: totdfluxs(nbndlw,0:nlay) ! downward longwave flux spectral (w/m2)
       real(kind=r8) :: fnet(0:nlay)             ! net longwave flux (w/m2)
       real(kind=r8) :: htr(0:nlay)              ! longwave heating rate (k/day)
@@ -500,7 +503,7 @@
                      cldfmc, taucmc, planklay, planklev, plankbnd, &
                      pwvcm, fracs, taut, &
                      totuflux, totdflux, fnet, htr, &
-                     totuclfl, totdclfl, fnetc, htrc, totufluxs, totdfluxs )
+                     totuclfl, totdclfl, fnetc, htrc, totufluxs, totdfluxs, ozfl )
 
 !  Transfer up and down fluxes and heating rate to output arrays.
 !  Vertical indexing goes from bottom to top
@@ -512,6 +515,7 @@
             dflxc(iplon,k+1) = totdclfl(k)
             uflxs(:,iplon,k+1) = totufluxs(:,k)
             dflxs(:,iplon,k+1) = totdfluxs(:,k)
+            uoz(:,iplon,k+1) = ozfl(:,k)
          enddo
          do k = 0, nlay-1
             hr(iplon,k+1) = htr(k)

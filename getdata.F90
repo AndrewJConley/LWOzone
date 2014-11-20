@@ -14,7 +14,7 @@ save
 
 contains
 
-subroutine getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,o2vmr,n2ovmr,cfc11vmr,cfc12vmr,cfc22vmr,ccl4vmr)
+subroutine getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,o2vmr,n2ovmr,cfc11vmr,cfc12vmr,cfc22vmr,ccl4vmr,o3flux)
 
 
    real(r8) :: emis(pcols,nbndlw)   ! surface emissivity
@@ -66,7 +66,7 @@ subroutine getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,
     call get_command_argument(i, filename)
     if (len_trim(filename) == 0) stop
 
-    write (*,*) trim(filename)
+!    write (*,*) trim(filename)
 
    open(unit=15, file=filename, status='old', access='sequential', form='formatted', action='read')
 !   open(unit=15, file='/glade/u/home/aconley/ozone/data/TES_r10658_seq114_scn3_R_FM.asc', status='old', access='sequential', form='formatted', action='read')
@@ -117,7 +117,7 @@ subroutine getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,
    read(15,'(A)') junkchar
    iblnk = index(junkchar,'=')
    read(junkchar(iblnk+2:),*) o3flux
-   print*,'tes-reported o3 flux',o3flux
+!   print*,'tes-reported o3 flux',o3flux
 
    read(15,'(A)') junkchar
    iblnk = index(junkchar,'=')

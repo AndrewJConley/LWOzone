@@ -35,7 +35,7 @@
                         cldfmc, taucmc, planklay, planklev, plankbnd, &
                         pwvcm, fracs, taut, &
                         totuflux, totdflux, fnet, htr, &
-                        totuclfl, totdclfl, fnetc, htrc, totufluxs, totdfluxs ) 
+                        totuclfl, totdclfl, fnetc, htrc, totufluxs, totdfluxs, ozfl ) 
 !-----------------------------------------------------------------------------
 !
 !  Original version:   E. J. Mlawer, et al. RRTM_V3.0
@@ -109,6 +109,8 @@
                                                         !    Dimensions: (nbndlw, 0:nlayers)
       real(kind=r8), intent(out) :: totdfluxs(:,0:)     ! downward longwave flux spectral (w/m2)
                                                         !    Dimensions: (nbndlw, 0:nlayers)
+      real(kind=r8), intent(out) :: ozfl(:,0:)          ! upward longwave flux spectral (w/m2)
+                                                        !    Dimensions: (nbndlw, 0:nlayers)
 
 ! ----- Local -----
 ! Declarations for radiative transfer
@@ -142,6 +144,7 @@
       integer :: igc                                     ! g-point interval counter
       integer :: iclddn                                  ! flag for cloud in down path
       integer :: ittot, itgas, itr                       ! lookup table indices
+      integer :: idiff,nquad ! diffusivity quadrature
 
 ! ------- Definitions -------
 ! input
@@ -203,39 +206,21 @@
 !    htrc                         ! clear sky longwave heating rate (k/day)
 
 
-! This secant and weight corresponds to the standard diffusivity 
-! angle.  This initial value is redefined below for some bands.
-      data wtdiff /0.5_r8/
-      data rec_6 /0.166667_r8/
+      rec_6 = 0.166667_r8  ! 1./6.
 
-! Reset diffusivity angle for Bands 2-3 and 5-9 to vary (between 1.50
-! and 1.80) as a function of total column water vapor.  The function
-! has been defined to minimize flux and cooling rate errors in these bands
-! over a wide range of precipitable water values.
-      data a0 / 1.66_r8,  1.55_r8,  1.58_r8,  1.66_r8, &
-                1.54_r8, 1.454_r8,  1.89_r8,  1.33_r8, &
-               1.668_r8,  1.66_r8,  1.66_r8,  1.66_r8, &
-                1.66_r8,  1.66_r8,  1.66_r8,  1.66_r8 /
-      data a1 / 0.00_r8,  0.25_r8,  0.22_r8,  0.00_r8, &
-                0.13_r8, 0.446_r8, -0.10_r8,  0.40_r8, &
-              -0.006_r8,  0.00_r8,  0.00_r8,  0.00_r8, &
-                0.00_r8,  0.00_r8,  0.00_r8,  0.00_r8 /
-      data a2 / 0.00_r8, -12.0_r8, -11.7_r8,  0.00_r8, &
-               -0.72_r8,-0.243_r8,  0.19_r8,-0.062_r8, &
-               0.414_r8,  0.00_r8,  0.00_r8,  0.00_r8, &
-                0.00_r8,  0.00_r8,  0.00_r8,  0.00_r8 /
+      !original default values (but vary on band...)
+      !wtdiff = 0.5_r8
+      !secdiff(ibnd) = 1.66_r8
 
-      hvrrtc = '$Revision: 1.3 $'
+     
+     totufluxs(:,:) = 0.0d0
+     totdfluxs(:,:) = 0.0d0
+     nquad = 50
+     do idiff = 1,nquad
 
-      do ibnd = 1,nbndlw
-         if (ibnd.eq.1 .or. ibnd.eq.4 .or. ibnd.ge.10) then
-           secdiff(ibnd) = 1.66_r8
-         else
-           secdiff(ibnd) = a0(ibnd) + a1(ibnd)*exp(a2(ibnd)*pwvcm)
-         endif
-      enddo
-      if (pwvcm.lt.1.0) secdiff(6) = 1.80_r8
-      if (pwvcm.gt.7.1) secdiff(7) = 1.50_r8
+      wtdiff  = (idiff - 0.5_r8)/(nquad*nquad)
+      secdiff = nquad / ( idiff - 0.5_r8)
+
 
       urad(0) = 0.0_r8
       drad(0) = 0.0_r8
@@ -470,6 +455,7 @@
 ! End spectral band loop
       enddo
 
+
 ! Calculate fluxes at surface
       totuflux(0) = totuflux(0) * fluxfac
       totdflux(0) = totdflux(0) * fluxfac
@@ -496,6 +482,12 @@
          htr(l)=heatfac*(fnet(l)-fnet(lev))/(pz(l)-pz(lev)) 
          htrc(l)=heatfac*(fnetc(l)-fnetc(lev))/(pz(l)-pz(lev)) 
       enddo
+
+      ozfl(:,:) = ozfl(:,:) + totufluxs(:,:)
+
+
+      enddo !idiff = 0,50
+
 
 ! Set heating rate to zero in top layer
       htr(nlayers) = 0.0_r8

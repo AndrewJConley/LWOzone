@@ -12,6 +12,7 @@ use rrtmg_lw_rad,      only: rrtmg_lw
 use radconstants,      only: nlwbands, pcols, ncol, lchnk, pver, pverp, rrtmg_levs, ozone_band
 use physconst,         only: cpair
 use getdatam,          only: getdata
+use planck,            only: integrated_planck
 
 implicit none
 
@@ -98,6 +99,7 @@ implicit none
    real(r8) :: hr(pcols,rrtmg_levs)      ! Longwave heating rate (K/d)
    real(r8) :: hrc(pcols,rrtmg_levs)     ! Clear sky longwave heating rate (K/d)
    real(r8) :: lwuflxs(nbndlw,pcols,pverp+1)  ! Longwave spectral flux up
+   real(r8) :: uoz(nbndlw,pcols,pverp+1)  ! Longwave spectral flux up
    real(r8) :: lwdflxs(nbndlw,pcols,pverp+1)  ! Longwave spectral flux down
 
    real(r8) :: h2ovmr(pcols,rrtmg_levs) 
@@ -114,6 +116,7 @@ implicit none
    real(r8) :: pintmb(pcols,rrtmg_levs+1) 
    real(r8) :: tlay(pcols,rrtmg_levs) 
    real(r8) :: tlev(pcols,rrtmg_levs+1) 
+   real(r8) :: fixflux, tes_reported_o3flux
    !-----------------------------------------------------------------------
 
    allocate(lu(pcols,rrtmg_levs+1,nlwbands))
@@ -136,7 +139,7 @@ implicit none
    iceflglw = 0
    liqflglw = 0
 
-   call getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,o2vmr,n2ovmr,cfc11vmr,cfc12vmr,cfc22vmr,ccl4vmr)
+   call getdata(emis,tsfc,tlev,tlay,pmidmb,pintmb,h2ovmr,o3vmr,co2vmr,ch4vmr,o2vmr,n2ovmr,cfc11vmr,cfc12vmr,cfc22vmr,ccl4vmr,tes_reported_o3flux)
 
    if (associated(lu)) lu(1:ncol,:,:) = 0.0_r8
    if (associated(ld)) ld(1:ncol,:,:) = 0.0_r8
@@ -148,7 +151,7 @@ implicit none
         cld_stolw,tauc_stolw,cicewp_stolw,cliqwp_stolw ,rei, rel, &
         taua_lw, &
         uflx    ,dflx    ,hr      ,uflxc   ,dflxc   ,hrc, &
-        lwuflxs, lwdflxs)
+        lwuflxs, lwdflxs, uoz)
 
    !
    !----------------------------------------------------------------------
@@ -200,8 +203,10 @@ implicit none
    ! Pass spectral fluxes, reverse layering
    ! order=(/3,1,2/) maps the first index of lwuflxs to the third index of lu.
    if (associated(lu)) then
-      lu(:ncol,pverp-rrtmg_levs+1:pverp,:) = reshape(lwuflxs(:,:ncol,rrtmg_levs:1:-1), &
+      lu(:ncol,pverp-rrtmg_levs+1:pverp,:) = reshape(uoz(:,:ncol,rrtmg_levs:1:-1), &
            (/ncol,rrtmg_levs,nbndlw/), order=(/3,1,2/))
+!      lu(:ncol,pverp-rrtmg_levs+1:pverp,:) = reshape(lwuflxs(:,:ncol,rrtmg_levs:1:-1), &
+!           (/ncol,rrtmg_levs,nbndlw/), order=(/3,1,2/))
    end if
    
    if (associated(ld)) then
@@ -209,13 +214,10 @@ implicit none
            (/ncol,rrtmg_levs,nbndlw/), order=(/3,1,2/))
    end if
 
-   !print *, 'ozone lw up'
-   !print *, lu(1,:,ozone_band)
-   print *, 'ozone lw up top'
-   print *, lu(1,2,ozone_band)
-!   print *, 'ozone lw down'
-!   print *, ld(1,:,ozone_band)
+   call integrated_planck(980._r8, 985._r8, tsfc(1), fixflux)
+
+   !print *, 'tes-reported 03flux','ozone lw up top', 'fixed flux (980-985)'
+   print *, tes_reported_o3flux, lu(1,2,ozone_band), lu(1,2,ozone_band)-fixflux
    
-   print *, ' '
 end program
 
