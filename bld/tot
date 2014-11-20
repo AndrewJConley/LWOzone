@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#BSUB -a tv
+#BSUB -P P93300643
+#BSUB -J my_job
+#BSUB -W 00:30
+#BSUB -n 1
+#BSUB -R "span[ptile=1]"
+#BSUB -q small
+#BSUB -e errors.%J.mpi
+#BSUB -o output.%J.mpi
+ 
+module load totalview
+totalview -mpi "poe - Linux" -np 1 ./lwrt
